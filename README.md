@@ -2,7 +2,7 @@
 
 ### 1. Clone the repository
 
-git clone https://github.com/YOUR_USERNAME/PrivCont.git
+git clone https://github.com/meysaw/PrivCont.git
 cd PrivCont
 
 ### 2. Install dependencies
@@ -13,7 +13,7 @@ npm install
 
 cp .env.example .env
 
-Update .env with your own MongoDB connection string and JWT secret.
+update .env with your own MongoDB connection string and JWT secret.
 
 ### 4. Seed the problem database
 
