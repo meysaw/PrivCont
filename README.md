@@ -3,6 +3,7 @@
 ### 1. Clone the repository
 
 git clone https://github.com/meysaw/PrivCont.git
+
 cd PrivCont
 
 ### 2. Install dependencies
