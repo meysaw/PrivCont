@@ -89,7 +89,39 @@ res.status(201).json({
         });
     }
 };
+const getMySubmissions = async (req, res) => {
+    try {
+        const { contestId, problemId } = req.query;
 
+        const filter = {
+            user: req.userId
+        };
+
+        if (contestId) {
+            filter.contest = contestId;
+        }
+
+        if (problemId) {
+            filter.problem = problemId;
+        }
+
+        const submissions = await Submission.find(filter)
+            .sort({ createdAt: -1 })
+            .select("-code");
+
+        res.status(200).json({
+            submissions
+        });
+
+    } catch (error) {
+        console.error("Get submissions error:", error);
+
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
 module.exports = {
-    createSubmission
+    createSubmission,
+    getMySubmissions
 };

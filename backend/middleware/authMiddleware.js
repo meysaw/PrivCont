@@ -17,7 +17,6 @@ const protect = (req, res, next) => {
             process.env.JWT_SECRET
         );
 
-        console.log("Decoded JWT:", decoded);
 
         req.userId = decoded.userId;
 
