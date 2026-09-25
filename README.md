@@ -26,6 +26,8 @@ npm run dev
 
 ### 6. Frontend
 
-cd PrivCont/frontend/proj
+cd PrivCont/frontend
+
+npm install
 
 npm run dev
