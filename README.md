@@ -4,7 +4,7 @@
 
 git clone https://github.com/meysaw/PrivCont.git
 
-cd PrivCont
+cd PrivCont/backend
 
 ### 2. Install dependencies
 
@@ -21,5 +21,11 @@ update .env with your own MongoDB connection string and JWT secret.
 node seed/problems.js
 
 ### 5. Start the server
+
+npm run dev
+
+### 6. Frontend
+
+cd PrivCont/proj/frontend
 
 npm run dev
