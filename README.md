@@ -26,6 +26,6 @@ npm run dev
 
 ### 6. Frontend
 
-cd PrivCont/proj/frontend
+cd PrivCont/frontend/proj
 
 npm run dev
