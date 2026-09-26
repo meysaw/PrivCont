@@ -7,11 +7,13 @@ import CreateContest from "./pages/CreateContest";
 import Contest from "./pages/Contest";
 import JoinContest from "./pages/JoinContest";
 import Problem from "./pages/Problem";
+import Register from "./pages/SignUp";
 function App() {
 
   return(
     <BrowserRouter>
       <Routes>
+        <Route path="/register" element={<Register/>}/>
         <Route path="/login" element={<Login/>}/>
         <Route path="/dashboard" element={<ProtectedRoute><DashBoard/></ProtectedRoute>}/>
         <Route path="/create-contest" element={<ProtectedRoute><CreateContest/></ProtectedRoute>}/>
