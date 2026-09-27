@@ -1,100 +1,104 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import Navbar from "../components/Navbar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function CreateContest() {
-    const [name, setName] = useState("");
-    const [difficulty, setDifficulty] = useState("Easy");
-    const [problemCount, setProblemCount] = useState(2);
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [difficulty, setDifficulty] = useState("Easy");
+  const [problemCount, setProblemCount] = useState(3);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const { token } = useAuth();
-    const navigate = useNavigate();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await api.post("/contests", {
+        name,
+        difficulty,
+        problemCount: Number(problemCount),
+      });
+      navigate(`/contest/${res.data.contest._id}`);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create contest.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+  return (
+    <div className="min-h-screen bg-muted/40">
+      <Navbar />
+      <div className="mx-auto max-w-md px-4 py-16">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Create Contest</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Contest Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Friday Night Contest"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
 
-        try {
-            const response = await api.post(
-                "/contests",
-                {
-                    name,
-                    difficulty,
-                    problemCount
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
+              <div className="space-y-2">
+                <Label htmlFor="difficulty">Difficulty</Label>
+                <Select value={difficulty} onValueChange={setDifficulty}>
+                  <SelectTrigger id="difficulty">
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Easy">Easy</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            navigate(`/contest/${response.data.contest._id}`);
-        } catch (error) {
-            console.error(error.response?.data || error);
-        }
-    };
+              <div className="space-y-2">
+                <Label htmlFor="problemCount">Number of Problems</Label>
+                <Input
+                  id="problemCount"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={problemCount}
+                  onChange={(e) => setProblemCount(e.target.value)}
+                  required
+                />
+              </div>
 
-    return (
-        <div>
-            <h1>Create Contest</h1>
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <form onSubmit={handleSubmit}>
-
-                <div>
-                    <label>Contest Name</label>
-                    <br />
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="My Coding Contest"
-                        required
-                    />
-                </div>
-
-                <br />
-
-                <div>
-                    <label>Difficulty</label>
-                    <br />
-
-                    <select
-                        value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value)}
-                    >
-                        <option value="Easy">Easy</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Hard">Hard</option>
-                    </select>
-                </div>
-
-                <br />
-
-                <div>
-                    <label>Number of Problems</label>
-                    <br />
-
-                    <input
-                        type="number"
-                        min="1"
-                        value={problemCount}
-                        onChange={(e) =>
-                            setProblemCount(Number(e.target.value))
-                        }
-                        required
-                    />
-                </div>
-
-                <br />
-
-                <button type="submit">
-                    Create Contest
-                </button>
-
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creating..." : "Create Contest"}
+              </Button>
             </form>
-        </div>
-    );
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
 
 export default CreateContest;
