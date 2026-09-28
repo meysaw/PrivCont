@@ -44,7 +44,7 @@ const contestSchema = new mongoose.Schema(
         },
         endTime: {
             type: Date,
-            rquired: true
+            required: true
         }
     },
     {

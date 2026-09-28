@@ -4,7 +4,7 @@ import Editor from "@monaco-editor/react";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -103,18 +103,16 @@ function Problem() {
       });
       setHistory(res.data.submissions);
     } catch {
-      // non-fatal
     }
   };
 
   useEffect(() => {
     fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contestId, problemId]);
 
   const currentIndex = allProblems.findIndex((p) => p._id === problemId);
   const nextProblem = allProblems[currentIndex + 1];
-
+  const prevProblem=allProblems[currentIndex - 1];
   const startsAt = contest ? new Date(contest.startTime) : null;
   const endsAt = contest ? new Date(contest.endTime) : null;
   const notStarted = startsAt && now < startsAt;
@@ -126,8 +124,7 @@ function Problem() {
     setCode(DEFAULT_CODE[value]);
   };
 
-  // Monaco measures character widths once. If the font finishes loading
-  // afterwards, the cursor drifts, so re-measure when it's ready.
+  
   const handleEditorMount = (_editor, monaco) => {
     document.fonts
       .load('15px "JetBrains Mono Variable"')
@@ -365,6 +362,18 @@ function Problem() {
             )}
 
             <div className="flex justify-end gap-3">
+             {prevProblem && (
+                <Button
+                  variant="outline"
+                  className="rounded-lg"
+                  onClick={() =>
+                    navigate(`/contest/${contestId}/problem/${prevProblem._id}`)
+                  }
+                >
+                 <ChevronLeft className="ml-1 h-2 w-2" />
+                   Previous
+                </Button>
+              )}
               {nextProblem && (
                 <Button
                   variant="outline"
