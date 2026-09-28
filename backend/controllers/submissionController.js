@@ -19,9 +19,7 @@ const createSubmission = async (req, res) => {
                 message: "Contest not found"
             });
         }
-    if (!isParticipant) {
-    return res.status(403).json({ message: "You are not a participant in this contest" });
-}
+   
 
     const now = new Date();
 
@@ -41,7 +39,6 @@ const createSubmission = async (req, res) => {
             participant =>
                 participant.toString() === req.userId.toString()
         );
-
         if (!isParticipant) {
             return res.status(403).json({
                 message: "You are not a participant in this contest"

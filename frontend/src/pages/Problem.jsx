@@ -3,8 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import {
@@ -31,17 +29,23 @@ const DEFAULT_CODE = {
 
 const EDITOR_OPTIONS = {
   fontSize: 15,
+  fontFamily: "'JetBrains Mono Variable', ui-monospace, monospace",
   minimap: { enabled: false },
   padding: { top: 16, bottom: 16 },
   scrollBeyondLastLine: false,
   smoothScrolling: true,
-  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
 };
 
-const statusColor = (status) => {
-  if (status === "Accepted") return "bg-green-100 text-green-800";
-  if (status === "Pending") return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
+const difficultyPill = {
+  Easy: "bg-emerald-50 text-emerald-600",
+  Medium: "bg-amber-50 text-amber-600",
+  Hard: "bg-rose-50 text-rose-600",
+};
+
+const statusText = (status) => {
+  if (status === "Accepted") return "text-emerald-600";
+  if (status === "Pending") return "text-amber-600";
+  return "text-rose-600";
 };
 
 const formatCountdown = (ms) => {
@@ -65,6 +69,7 @@ function Problem() {
   const [history, setHistory] = useState([]);
   const [contest, setContest] = useState(null);
   const [now, setNow] = useState(new Date());
+  const [tab, setTab] = useState("description");
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -98,7 +103,7 @@ function Problem() {
       });
       setHistory(res.data.submissions);
     } catch {
-      // non-fatal — just leave history empty
+      // non-fatal
     }
   };
 
@@ -119,6 +124,14 @@ function Problem() {
   const handleLanguageChange = (value) => {
     setLanguage(value);
     setCode(DEFAULT_CODE[value]);
+  };
+
+  // Monaco measures character widths once. If the font finishes loading
+  // afterwards, the cursor drifts, so re-measure when it's ready.
+  const handleEditorMount = (_editor, monaco) => {
+    document.fonts
+      .load('15px "JetBrains Mono Variable"')
+      .then(() => monaco.editor.remeasureFonts());
   };
 
   const handleSubmit = async () => {
@@ -164,132 +177,97 @@ function Problem() {
   return (
     <div className="min-h-screen bg-muted/40">
       <Navbar />
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Left: problem statement */}
-          <Card className="h-fit">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-3xl font-bold">
-                  {problem.title}
-                </CardTitle>
-                <Badge>
-                  {problem.difficulty} &middot; {problem.points} pts
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <p className="whitespace-pre-wrap">{problem.description}</p>
-              <div>
-                <h3 className="font-semibold">Input Format</h3>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {problem.inputFormat}
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Output Format</h3>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {problem.outputFormat}
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Constraints</h3>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {problem.constraints}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Left panel */}
+          <div className="overflow-y-auto rounded-2xl bg-background lg:sticky lg:top-6 lg:max-h-[calc(100vh-7rem)] lg:self-start">
+            <div className="flex gap-6 border-b px-8 pt-5 text-sm">
+              {["description", "submissions"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`-mb-px border-b-2 pb-3 capitalize transition-colors ${
+                    tab === t
+                      ? "border-foreground font-medium"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
 
-          {/* Right: editor + submit + history */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-lg">Solution</CardTitle>
-                <Select value={language} onValueChange={handleLanguageChange}>
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="javascript">JavaScript</SelectItem>
-                    <SelectItem value="java">Java</SelectItem>
-                  </SelectContent>
-                </Select>
-                {notStarted && (
-                  <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                    Contest starts in {formatCountdown(startsAt - now)}.
-                    Submissions open then.
-                  </p>
-                )}
-                {ended && (
-                  <p className="rounded-md border p-3 text-sm text-muted-foreground">
-                    This contest has ended. Submissions are closed.
-                  </p>
-                )}
-                {canSubmit && (
-                  <p className="text-sm text-muted-foreground">
-                    Time left: {formatCountdown(endsAt - now)}
-                  </p>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="overflow-hidden rounded-lg border shadow-sm">
-                  <Editor
-                    height="520px"
-                    language={language}
-                    theme="light"
-                    value={code}
-                    onChange={(value) => setCode(value ?? "")}
-                    options={EDITOR_OPTIONS}
-                  />
-                </div>
-
-                {error && <p className="text-sm text-destructive">{error}</p>}
-
-                {result && (
-                  <div className="flex items-center gap-3 rounded-md border p-3 text-sm">
-                    <Badge className={statusColor(result.status)}>
-                      {result.status}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      {result.testsPassed}/{result.testsTotal} tests passed
-                      &middot; {result.score} pts
-                    </span>
-                  </div>
-                )}
-
-                
-
-                <div className="flex gap-3">
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={submitting || !canSubmit}
-                    className="flex-1"
-                  >
-                    {submitting ? "Judging..." : "Submit"}
-                  </Button>
-
-                  {nextProblem && (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        navigate(
-                          `/contest/${contestId}/problem/${nextProblem._id}`
-                        )
-                      }
+            {tab === "description" && (
+              <div className="space-y-8 p-8">
+                <div className="space-y-4">
+                  <h1 className="text-2xl font-semibold tracking-tight">
+                    {currentIndex + 1}. {problem.title}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${difficultyPill[problem.difficulty]}`}
                     >
-                      Next <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  )}
+                      {problem.difficulty}
+                    </span>
+                    <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                      {problem.points} pts
+                    </span>
+                    {problem.tags?.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Submission History</CardTitle>
-              </CardHeader>
-              <CardContent>
+                <p className="whitespace-pre-wrap text-[15px] leading-7">
+                  {problem.description}
+                </p>
+
+                <section className="space-y-2">
+                  <h3 className="font-semibold">Input Format</h3>
+                  <p className="whitespace-pre-wrap text-[15px] leading-7 text-muted-foreground">
+                    {problem.inputFormat}
+                  </p>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="font-semibold">Output Format</h3>
+                  <p className="whitespace-pre-wrap text-[15px] leading-7 text-muted-foreground">
+                    {problem.outputFormat}
+                  </p>
+                </section>
+
+                {problem.examples?.map((ex, i) => (
+                  <section key={i} className="space-y-3">
+                    <h3 className="font-semibold">Example {i + 1}</h3>
+                    <div className="space-y-3 border-l-2 pl-4 font-mono text-sm">
+                      <div>
+                        <span className="font-semibold">Input:</span>
+                        <pre className="mt-1 whitespace-pre-wrap">{ex.input}</pre>
+                      </div>
+                      <div>
+                        <span className="font-semibold">Output:</span>
+                        <pre className="mt-1 whitespace-pre-wrap">{ex.output}</pre>
+                      </div>
+                    </div>
+                  </section>
+                ))}
+
+                <section className="space-y-2">
+                  <h3 className="font-semibold">Constraints</h3>
+                  <p className="whitespace-pre-wrap font-mono text-sm leading-7 text-muted-foreground">
+                    {problem.constraints}
+                  </p>
+                </section>
+              </div>
+            )}
+
+            {tab === "submissions" && (
+              <div className="p-8">
                 {history.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No submissions yet.
@@ -300,30 +278,112 @@ function Problem() {
                       <TableRow>
                         <TableHead>Status</TableHead>
                         <TableHead>Tests</TableHead>
-                        <TableHead className="text-right">Score</TableHead>
+                        <TableHead>Score</TableHead>
+                        <TableHead className="text-right">Submitted</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {history.map((sub) => (
                         <TableRow key={sub._id}>
-                          <TableCell>
-                            <Badge className={statusColor(sub.status)}>
-                              {sub.status}
-                            </Badge>
+                          <TableCell
+                            className={`font-medium ${statusText(sub.status)}`}
+                          >
+                            {sub.status}
                           </TableCell>
                           <TableCell>
                             {sub.testsPassed}/{sub.testsTotal}
                           </TableCell>
-                          <TableCell className="text-right font-mono">
-                            {sub.score}
+                          <TableCell>{sub.score}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {new Date(sub.createdAt).toLocaleString()}
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
+          </div>
+
+          {/* Right panel */}
+          <div className="space-y-4 rounded-2xl bg-background p-5">
+            <div className="flex items-center justify-between">
+              <Select value={language} onValueChange={handleLanguageChange}>
+                <SelectTrigger className="w-36 rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="javascript">JavaScript</SelectItem>
+                  <SelectItem value="java">Java</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {canSubmit && (
+                <span className="text-sm text-muted-foreground">
+                  Time left: {formatCountdown(endsAt - now)}
+                </span>
+              )}
+            </div>
+
+            <div className="overflow-hidden rounded-xl border">
+              <Editor
+                height="520px"
+                language={language}
+                theme="light"
+                value={code}
+                onChange={(value) => setCode(value ?? "")}
+                onMount={handleEditorMount}
+                options={EDITOR_OPTIONS}
+              />
+            </div>
+
+            {notStarted && (
+              <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                Contest starts in {formatCountdown(startsAt - now)}. Submissions
+                open then.
+              </p>
+            )}
+            {ended && (
+              <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                This contest has ended. Submissions are closed.
+              </p>
+            )}
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            {result && (
+              <div className="space-y-1">
+                <p className={`font-semibold ${statusText(result.status)}`}>
+                  {result.status}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {result.testsPassed}/{result.testsTotal} tests passed &middot;{" "}
+                  {result.score} pts
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              {nextProblem && (
+                <Button
+                  variant="outline"
+                  className="rounded-lg"
+                  onClick={() =>
+                    navigate(`/contest/${contestId}/problem/${nextProblem._id}`)
+                  }
+                >
+                  Next <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting || !canSubmit}
+                className="rounded-lg bg-emerald-600 px-6 text-white hover:bg-emerald-700"
+              >
+                {submitting ? "Judging..." : "Submit"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

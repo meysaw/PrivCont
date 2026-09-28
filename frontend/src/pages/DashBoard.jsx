@@ -27,6 +27,7 @@ function DashBoard() {
   const navigate = useNavigate();
   const [contests, setContests] = useState(null);
   const [error, setError] = useState("");
+  
 
   useEffect(() => {
     const fetchContests = async () => {
@@ -54,7 +55,7 @@ function DashBoard() {
       <Navbar />
       <div className="mx-auto max-w-3xl px-4 py-20">
         <div className="mb-12 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome </h1>
           <p className="mt-2 text-muted-foreground">
             Create a contest for your friends, or join one with an invite code.
           </p>

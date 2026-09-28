@@ -137,21 +137,14 @@ const getContestProblems = async (req, res) => {
     try {
         const { contestId } = req.params;
 
-        const contest = await Contest.findById(contestId)
-            .populate({
-                path: "problems",
-                select: "-testCases"
-            });
+        const contest = await Contest.findById(contestId).populate("problems");
 
         if (!contest) {
-            return res.status(404).json({
-                message: "Contest not found"
-            });
+            return res.status(404).json({ message: "Contest not found" });
         }
 
         const isParticipant = contest.participants.some(
-            participant =>
-                participant.toString() === req.userId.toString()
+            (participant) => participant.toString() === req.userId.toString()
         );
 
         if (!isParticipant) {
@@ -159,27 +152,35 @@ const getContestProblems = async (req, res) => {
                 message: "You are not a participant in this contest"
             });
         }
+
         const now = new Date();
 
         if (now < contest.startTime) {
-            return res.status(403).json({
-                message: "This contest hasn't started yet"
-        });
-    }
+            return res.status(403).json({ message: "This contest hasn't started yet" });
+        }
 
-if (now > contest.endTime) {
-    return res.status(403).json({
-        message: "This contest has ended"
-    });
-}
-        res.status(200).json({
-            problems: contest.problems
-        });
+        if (now > contest.endTime) {
+            return res.status(403).json({ message: "This contest has ended" });
+        }
 
+        const problems = contest.problems.map((p) => ({
+            _id: p._id,
+            title: p.title,
+            description: p.description,
+            difficulty: p.difficulty,
+            points: p.points,
+            inputFormat: p.inputFormat,
+            outputFormat: p.outputFormat,
+            constraints: p.constraints,
+            tags: p.tags,
+            examples: p.testCases
+                .filter((tc) => tc.isHidden === false)
+                .map((tc) => ({ input: tc.input, output: tc.output }))
+        }));
+
+        res.status(200).json({ problems });
     } catch (error) {
-        res.status(500).json({
-            message: error.message
-        });
+        res.status(500).json({ message: error.message });
     }
 };
 const getLeaderboard = async (req, res) => {
