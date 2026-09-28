@@ -35,11 +35,16 @@ const contestSchema = new mongoose.Schema(
         ],
 
         startTime: {
-            type: Date
+            type: Date,
+            required: true
         },
-
+        durationMinutes:{
+            type:Number,
+            required: true
+        },
         endTime: {
-            type: Date
+            type: Date,
+            rquired: true
         }
     },
     {

@@ -21,12 +21,39 @@ import {
 import { Copy } from "lucide-react";
 
 const difficultyColor = (difficulty) => {
-  if (difficulty === "Easy") return "bg-green-100 text-green-800";
-  if (difficulty === "Medium") return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
+  if (difficulty === "Easy") return "bg-white-100 text-green-500";
+  if (difficulty === "Medium") return "bg-white-100 text-yellow-500";
+  return "bg-white-100 text-red-500";
+};
+const getStatus = (contest, now) => {
+  const start = new Date(contest.startTime);
+  const end = new Date(contest.endTime);
+  if (now < start) return "Upcoming";
+  if (now > end) return "Ended";
+  return "Live";
+};
+
+const statusStyle = {
+  Upcoming: "bg-white-100 text-blue-800",
+  Live: "bg-white-100 text-green-800",
+  Ended: "bg-white-100 text-gray-700",
+};
+
+const formatCountdown = (ms) => {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
 };
 
 function Contest() {
+const [now, setNow] = useState(new Date());
+
+useEffect(() => {
+  const timer = setInterval(() => setNow(new Date()), 1000);
+  return () => clearInterval(timer);
+}, []);
   const { contestId } = useParams();
   const navigate = useNavigate();
   const [contest, setContest] = useState(null);
@@ -35,23 +62,34 @@ function Contest() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [contestRes, problemsRes, leaderboardRes] = await Promise.all([
-          api.get(`/contests/${contestId}`),
-          api.get(`/contests/${contestId}/problems`),
-          api.get(`/contests/${contestId}/leaderboard`),
-        ]);
-        setContest(contestRes.data.contest);
-        setProblems(problemsRes.data.problems);
-        setLeaderboard(leaderboardRes.data.leaderboard);
-      } catch (err) {
-        setError(err.response?.data?.message || "Failed to load contest.");
-      }
-    };
-    fetchData();
-  }, [contestId]);
+useEffect(() => {
+  const fetchData = async () => {
+    const [contestRes, problemsRes, leaderboardRes] = await Promise.allSettled([
+      api.get(`/contests/${contestId}`),
+      api.get(`/contests/${contestId}/problems`),
+      api.get(`/contests/${contestId}/leaderboard`),
+    ]);
+
+    // Contest info is required. Without it there's no page.
+    if (contestRes.status === "rejected") {
+      setError(
+        contestRes.reason.response?.data?.message || "Failed to load contest."
+      );
+      return;
+    }
+    setContest(contestRes.value.data.contest);
+
+    // Problems are locked outside the contest window (403). That's expected.
+    if (problemsRes.status === "fulfilled") {
+      setProblems(problemsRes.value.data.problems);
+    }
+
+    if (leaderboardRes.status === "fulfilled") {
+      setLeaderboard(leaderboardRes.value.data.leaderboard);
+    }
+  };
+  fetchData();
+}, [contestId]);
 
   const copyInviteCode = () => {
     navigator.clipboard.writeText(contest.inviteCode);
@@ -67,7 +105,6 @@ function Contest() {
       </div>
     );
   }
-
   if (!contest) {
     return (
       <div className="min-h-screen bg-muted/40">
@@ -78,6 +115,7 @@ function Contest() {
       </div>
     );
   }
+  const status = getStatus(contest, now);
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -92,6 +130,27 @@ function Contest() {
                   Hosted by {contest.host} &middot; {contest.participantCount}{" "}
                   participant{contest.participantCount !== 1 ? "s" : ""}
                 </CardDescription>
+                {(() => {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+      <Badge className={statusStyle[status]}>{status}</Badge>
+      {status === "Upcoming" && (
+        <span className="text-muted-foreground">
+          Starts in {formatCountdown(new Date(contest.startTime) - now)}
+        </span>
+      )}
+      {status === "Live" && (
+        <span className="text-muted-foreground">
+          Ends in {formatCountdown(new Date(contest.endTime) - now)}
+        </span>
+      )}
+      <span className="text-muted-foreground">
+        {new Date(contest.startTime).toLocaleString()} to{" "}
+        {new Date(contest.endTime).toLocaleString()}
+      </span>
+    </div>
+  );
+})()}
               </div>
               <button
                 onClick={copyInviteCode}
@@ -108,32 +167,46 @@ function Contest() {
           <CardHeader>
             <CardTitle>Problems</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {problems.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No problems in this contest.
-              </p>
-            )}
-            {problems.map((problem) => (
-              <div
-                key={problem._id}
-                className="flex cursor-pointer items-center justify-between rounded-md border p-3 hover:bg-muted"
-                onClick={() =>
-                  navigate(`/contest/${contestId}/problem/${problem._id}`)
-                }
-              >
-                <span className="font-medium">{problem.title}</span>
-                <div className="flex items-center gap-3">
-                  <Badge className={difficultyColor(problem.difficulty)}>
-                    {problem.difficulty}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {problem.points} pts
-                  </span>
-                </div>
-              </div>
-            ))}
-          </CardContent>
+        <CardContent className="space-y-3">
+  {status === "Upcoming" && (
+    <p className="text-sm text-muted-foreground">
+      The contest hasn't started yet. Problems will be available once it's live.
+    </p>
+  )}
+
+  {status === "Ended" && (
+    <p className="text-sm text-muted-foreground">
+      The contest has ended. Problems are no longer accessible.
+    </p>
+  )}
+
+  {status === "Live" && problems.length === 0 && (
+    <p className="text-sm text-muted-foreground">
+      No problems in this contest.
+    </p>
+  )}
+
+  {status === "Live" &&
+    problems.map((problem) => (
+      <div
+        key={problem._id}
+        className="flex cursor-pointer items-center justify-between rounded-md border p-3 hover:bg-muted"
+        onClick={() =>
+          navigate(`/contest/${contestId}/problem/${problem._id}`)
+        }
+      >
+        <span className="font-medium">{problem.title}</span>
+        <div className="flex items-center gap-3">
+          <Badge className={difficultyColor(problem.difficulty)}>
+            {problem.difficulty}
+          </Badge>
+          <span className="text-sm text-muted-foreground">
+            {problem.points} pts
+          </span>
+        </div>
+      </div>
+    ))}
+</CardContent>
         </Card>
 
         <Card>

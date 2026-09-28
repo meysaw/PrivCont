@@ -29,10 +29,27 @@ const DEFAULT_CODE = {
     "public class Main {\n    public static void main(String[] args) {\n        \n    }\n}\n",
 };
 
+const EDITOR_OPTIONS = {
+  fontSize: 15,
+  minimap: { enabled: false },
+  padding: { top: 16, bottom: 16 },
+  scrollBeyondLastLine: false,
+  smoothScrolling: true,
+  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+};
+
 const statusColor = (status) => {
   if (status === "Accepted") return "bg-green-100 text-green-800";
   if (status === "Pending") return "bg-yellow-100 text-yellow-800";
   return "bg-red-100 text-red-800";
+};
+
+const formatCountdown = (ms) => {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
 };
 
 function Problem() {
@@ -46,13 +63,26 @@ function Problem() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [history, setHistory] = useState([]);
+  const [contest, setContest] = useState(null);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const res = await api.get(`/contests/${contestId}/problems`);
-        setAllProblems(res.data.problems);
-        const found = res.data.problems.find((p) => p._id === problemId);
+        const [problemsRes, contestRes] = await Promise.all([
+          api.get(`/contests/${contestId}/problems`),
+          api.get(`/contests/${contestId}`),
+        ]);
+        setAllProblems(problemsRes.data.problems);
+        setContest(contestRes.data.contest);
+        const found = problemsRes.data.problems.find(
+          (p) => p._id === problemId
+        );
         setProblem(found || null);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load problem.");
@@ -79,6 +109,12 @@ function Problem() {
 
   const currentIndex = allProblems.findIndex((p) => p._id === problemId);
   const nextProblem = allProblems[currentIndex + 1];
+
+  const startsAt = contest ? new Date(contest.startTime) : null;
+  const endsAt = contest ? new Date(contest.endTime) : null;
+  const notStarted = startsAt && now < startsAt;
+  const ended = endsAt && now > endsAt;
+  const canSubmit = contest && !notStarted && !ended;
 
   const handleLanguageChange = (value) => {
     setLanguage(value);
@@ -179,6 +215,22 @@ function Problem() {
                     <SelectItem value="java">Java</SelectItem>
                   </SelectContent>
                 </Select>
+                {notStarted && (
+                  <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                    Contest starts in {formatCountdown(startsAt - now)}.
+                    Submissions open then.
+                  </p>
+                )}
+                {ended && (
+                  <p className="rounded-md border p-3 text-sm text-muted-foreground">
+                    This contest has ended. Submissions are closed.
+                  </p>
+                )}
+                {canSubmit && (
+                  <p className="text-sm text-muted-foreground">
+                    Time left: {formatCountdown(endsAt - now)}
+                  </p>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="overflow-hidden rounded-lg border shadow-sm">
@@ -188,14 +240,7 @@ function Problem() {
                     theme="light"
                     value={code}
                     onChange={(value) => setCode(value ?? "")}
-                    options={{
-                      fontSize: 15,
-                      minimap: { enabled: false },
-                      padding: { top: 16, bottom: 16 },
-                      scrollBeyondLastLine: false,
-                      smoothScrolling: true,
-                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                    }}
+                    options={EDITOR_OPTIONS}
                   />
                 </div>
 
@@ -213,10 +258,12 @@ function Problem() {
                   </div>
                 )}
 
+                
+
                 <div className="flex gap-3">
                   <Button
                     onClick={handleSubmit}
-                    disabled={submitting}
+                    disabled={submitting || !canSubmit}
                     className="flex-1"
                   >
                     {submitting ? "Judging..." : "Submit"}

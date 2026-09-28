@@ -14,23 +14,47 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const DURATIONS = [
+  { value: "30", label: "30 minutes" },
+  { value: "60", label: "1 hour" },
+  { value: "90", label: "1 hour 30 minutes" },
+  { value: "120", label: "2 hours" },
+  { value: "180", label: "3 hours" },
+];
+
+// Format a Date as "YYYY-MM-DDTHH:mm" in LOCAL time (what datetime-local wants)
+const toLocalInputValue = (date) => {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
 function CreateContest() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [difficulty, setDifficulty] = useState("Easy");
   const [problemCount, setProblemCount] = useState(3);
+  const [startTime, setStartTime] = useState("");
+  const [duration, setDuration] = useState("60");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (new Date(startTime) < new Date()) {
+      setError("Start time must be in the future.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await api.post("/contests", {
         name,
         difficulty,
         problemCount: Number(problemCount),
+        startTime: new Date(startTime).toISOString(),
+        durationMinutes: Number(duration),
       });
       navigate(`/contest/${res.data.contest._id}`);
     } catch (err) {
@@ -65,7 +89,7 @@ function CreateContest() {
                 <Label htmlFor="difficulty">Difficulty</Label>
                 <Select value={difficulty} onValueChange={setDifficulty}>
                   <SelectTrigger id="difficulty">
-                    <SelectValue placeholder="Select difficulty" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Easy">Easy</SelectItem>
@@ -86,6 +110,34 @@ function CreateContest() {
                   onChange={(e) => setProblemCount(e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Start Time</Label>
+                <Input
+                  id="startTime"
+                  type="datetime-local"
+                  min={toLocalInputValue(new Date())}
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="duration">Duration</Label>
+                <Select value={duration} onValueChange={setDuration}>
+                  <SelectTrigger id="duration">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATIONS.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {error && <p className="text-sm text-destructive">{error}</p>}

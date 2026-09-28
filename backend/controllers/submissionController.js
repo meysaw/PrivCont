@@ -19,7 +19,23 @@ const createSubmission = async (req, res) => {
                 message: "Contest not found"
             });
         }
+    if (!isParticipant) {
+    return res.status(403).json({ message: "You are not a participant in this contest" });
+}
 
+    const now = new Date();
+
+    if (now < contest.startTime) {
+    return res.status(403).json({
+        message: "This contest hasn't started yet"
+    });
+    }
+
+    if (now > contest.endTime) {
+        return res.status(403).json({
+            message: "This contest has ended"
+        });
+    }
        
         const isParticipant = contest.participants.some(
             participant =>
