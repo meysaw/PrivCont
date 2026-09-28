@@ -6,6 +6,8 @@ const authRoutes = require("./routes/authRoutes");
 const testRoutes = require("./routes/testRoutes");
 const contestRoutes = require("./routes/contestRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -15,6 +17,7 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contests", contestRoutes);
 app.use("/api/test", testRoutes);
+app.use("/api/admin", adminRoutes);
 mongoose.connect(process.env.MONGODB_URI)
 .then(()=>{
     console.log("Mongo connected");

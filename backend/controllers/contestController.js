@@ -116,6 +116,11 @@ const joinContest=async(req,res)=>{
                 message:"you are already in this contest"
             });
         }
+        if (new Date() > contest.endTime) {
+    return res.status(400).json({
+        message: "This contest has already ended"
+    });
+}
         contest.participants.push(req.userId);
         await contest.save();
         res.status(200).json({
