@@ -26,7 +26,8 @@ const runTestCase = async (code, language, testCase) => {
             language_id: languageId,
             stdin: testCase.input,
             expected_output: testCase.output
-        }
+        },
+        { timeout: 10000 }
     );
 
     const token = submissionResponse.data.token;
@@ -34,12 +35,12 @@ const runTestCase = async (code, language, testCase) => {
     while (true) {
 
         const resultResponse = await axios.get(
-            `${JUDGE0_URL}/submissions/${token}?base64_encoded=false`
+            `${JUDGE0_URL}/submissions/${token}?base64_encoded=false`,
+            { timeout: 10000 }
         );
 
         const result = resultResponse.data;
 
-      
         if (result.status.id === 1 || result.status.id === 2) {
             await sleep(1000);
             continue;
@@ -48,38 +49,23 @@ const runTestCase = async (code, language, testCase) => {
         return result;
     }
 };
-const submissionResponse = await axios.post(
-    `${JUDGE0_URL}/submissions?base64_encoded=false&wait=false`,
-    {
-        source_code: code,
-        language_id: languageId,
-        stdin: testCase.input,
-        expected_output: testCase.output
-    },
-    { timeout: 10000 } // 10s — fail fast instead of hanging
-);
+
 const judgeSubmission = async (code, language, testCases, points) => {
 
-    let testsPassed = 0;
-    const testsTotal = testCases.length;
+    const results = await Promise.all(
+        testCases.map((testCase) => runTestCase(code, language, testCase))
+    );
 
+    let testsPassed = 0;
     let finalStatus = "Accepted";
 
-    for (const testCase of testCases) {
-
-        const result = await runTestCase(
-            code,
-            language,
-            testCase
-        );
-
+    for (const result of results) {
 
         if (result.status.id === 3) {
             testsPassed++;
             continue;
         }
 
-       
         if (finalStatus === "Accepted") {
 
             if (result.status.id === 4) {
@@ -95,6 +81,8 @@ const judgeSubmission = async (code, language, testCases, points) => {
             }
         }
     }
+
+    const testsTotal = testCases.length;
 
     if (testsPassed === testsTotal) {
         return {
