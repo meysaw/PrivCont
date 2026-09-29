@@ -48,7 +48,16 @@ const runTestCase = async (code, language, testCase) => {
         return result;
     }
 };
-
+const submissionResponse = await axios.post(
+    `${JUDGE0_URL}/submissions?base64_encoded=false&wait=false`,
+    {
+        source_code: code,
+        language_id: languageId,
+        stdin: testCase.input,
+        expected_output: testCase.output
+    },
+    { timeout: 10000 } // 10s — fail fast instead of hanging
+);
 const judgeSubmission = async (code, language, testCases, points) => {
 
     let testsPassed = 0;
