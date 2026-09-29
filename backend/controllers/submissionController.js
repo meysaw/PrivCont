@@ -19,7 +19,7 @@ const createSubmission = async (req, res) => {
                 message: "Contest not found"
             });
         }
-   
+
 
     const now = new Date();
 

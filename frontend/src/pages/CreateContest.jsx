@@ -22,7 +22,6 @@ const DURATIONS = [
   { value: "180", label: "3 hours" },
 ];
 
-// Format a Date as "YYYY-MM-DDTHH:mm" in LOCAL time (what datetime-local wants)
 const toLocalInputValue = (date) => {
   const offsetMs = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);

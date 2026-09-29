@@ -332,6 +332,7 @@ function Problem() {
                 onChange={(value) => setCode(value ?? "")}
                 onMount={handleEditorMount}
                 options={EDITOR_OPTIONS}
+                
               />
             </div>
 

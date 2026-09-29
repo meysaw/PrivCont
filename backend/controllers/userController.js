@@ -22,7 +22,6 @@ const getMyStats = async (req, res) => {
     try {
         const now = new Date();
 
-        // Contests I'm in that have already started
         const contests = await Contest.find({
             participants: req.userId,
             startTime: { $lte: now }
@@ -33,8 +32,7 @@ const getMyStats = async (req, res) => {
             .map((c) => c._id);
 
         const [scores, submissionCount, acceptedCount] = await Promise.all([
-            // Same scoring as the leaderboard: best accepted score per
-            // problem, summed per user, for every ended contest at once.
+           
             Submission.aggregate([
                 { $match: { contest: { $in: endedIds }, status: "Accepted" } },
                 {
@@ -67,7 +65,6 @@ const getMyStats = async (req, res) => {
             }
         });
 
-        // A win = top score in an ended contest, and above zero.
         const contestsWon = endedIds.filter((id) => {
             const contestId = id.toString();
             return mine[contestId] > 0 && mine[contestId] === best[contestId];

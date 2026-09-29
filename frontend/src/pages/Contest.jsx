@@ -70,7 +70,6 @@ useEffect(() => {
       api.get(`/contests/${contestId}/leaderboard`),
     ]);
 
-    // Contest info is required. Without it there's no page.
     if (contestRes.status === "rejected") {
       setError(
         contestRes.reason.response?.data?.message || "Failed to load contest."
@@ -79,7 +78,6 @@ useEffect(() => {
     }
     setContest(contestRes.value.data.contest);
 
-    // Problems are locked outside the contest window (403). That's expected.
     if (problemsRes.status === "fulfilled") {
       setProblems(problemsRes.value.data.problems);
     }

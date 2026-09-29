@@ -205,8 +205,8 @@ const getLeaderboard = async (req, res) => {
             return res.status(403).json({
                 message: "You are not a participant in this contest"
             });
-        }
-
+        }   
+        const hasEnded = new Date() > contest.endTime;
         const scores = await Submission.aggregate([
             {
                 $match: {
@@ -253,9 +253,18 @@ const getLeaderboard = async (req, res) => {
         leaderboard.forEach((entry, index) => {
             entry.rank = index + 1;
         });
+    if (hasEnded && leaderboard.length > 0) {
+    const winningScore = leaderboard[0].score;
+
+    leaderboard.forEach(entry => {
+        entry.isWinner =
+            winningScore > 0 && entry.score === winningScore;
+    });
+}
 
         res.status(200).json({
-            leaderboard
+            leaderboard,
+            hasEnded
         });
 
     } catch (error) {
