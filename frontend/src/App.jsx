@@ -11,13 +11,13 @@ import Register from "./pages/SignUp";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProblems from "./pages/AdminProblems";
 import Profile from "./pages/Profile";
-
+import Landing from "./pages/Landing";
 function App() {
 
   return(
     <BrowserRouter>
       <Routes>
-  
+  <Route path="/" element={<Landing />} />
         <Route path="/register" element={<Register/>}/>
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/problems" element={<ProtectedRoute><AdminProblems /></ProtectedRoute>} />       
